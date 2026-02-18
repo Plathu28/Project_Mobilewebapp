@@ -1,1 +1,30 @@
-@import "tailwindcss";
+:root {
+  --ion-color-primary: #3b82f6;
+  --ion-color-primary-rgb: 59, 130, 246;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #3574d9;
+  --ion-color-primary-tint: #4f8ef7;
+
+  --ion-background-color: #f9fafb;
+  --ion-toolbar-background: #ffffff;
+
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+}
+
+/* Remove Ionic default shadows/borders for cleaner look */
+ion-content {
+  --background: #f9fafb;
+}
+
+ion-modal {
+  --border-radius: 24px 24px 0 0;
+}
+
+ion-item {
+  --background: transparent;
+}
+
+/* Custom toast styling */
+.custom-toast {
+  --border-radius: 16px;
+}
