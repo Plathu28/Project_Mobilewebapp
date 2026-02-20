@@ -5,7 +5,10 @@
 
         <!-- Header -->
         <header class="mb-6 mt-6">
-          <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Today</h1>
+          <div class="flex items-baseline gap-3">
+            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Today</h1>
+            <span class="text-xl font-bold text-gray-400">{{ currentDate }}</span>
+          </div>
           <p class="text-blue-400 text-xl font-semibold mt-1">
             {{ todayTasksWithTime.length }} task{{ todayTasksWithTime.length !== 1 ? 's' : '' }}
           </p>
@@ -104,6 +107,12 @@ import { useTaskStore } from '@/stores/taskStore';
 import type { Task, CategoryName } from '@/types/task';
 
 const store = useTaskStore();
+
+const currentDate = new Date().toLocaleDateString('en-US', { 
+  weekday: 'short', 
+  month: 'short', 
+  day: 'numeric' 
+});
 
 const timelineHours = Array.from({ length: 18 }, (_, i) => i + 6); // 6:00 - 23:00
 

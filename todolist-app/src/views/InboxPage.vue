@@ -6,7 +6,10 @@
         <!-- Header -->
         <header class="mb-8 mt-6 flex justify-between items-end">
           <div>
-            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Inbox</h1>
+            <div class="flex items-baseline gap-3">
+              <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Inbox</h1>
+              <span class="text-xl font-bold text-gray-400">{{ currentDate }}</span>
+            </div>
             <p class="text-gray-500 text-lg font-medium mt-1">
               You have {{ store.activeTasks.length }} tasks
             </p>
@@ -73,12 +76,17 @@
               <ion-item class="task-item">
                 <div class="flex items-start gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 w-full my-1">
                   <!-- Checkbox -->
-                  <button
-                    class="mt-1 w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+                  <div
+                    style="min-width: 28px; min-height: 28px;"
+                    class="mt-1 w-7 h-7 bg-white rounded-full border-2 border-solid border-gray-400 flex-shrink-0 flex items-center justify-center cursor-pointer transition-all active:scale-75 active:bg-green-100 group"
                     :class="getCategoryBorderColor(task.category)"
                     @click.stop="handleComplete(task.id)"
                   >
-                  </button>
+                    <ion-icon 
+                      :icon="checkmark" 
+                      class="text-transparent group-active:text-green-600 text-xl transition-colors"
+                    ></ion-icon>
+                  </div>
 
                   <div class="flex-1 min-w-0">
                     <p class="text-base font-bold text-gray-800 truncate">{{ task.title }}</p>
@@ -145,6 +153,12 @@ import { useTaskStore } from '@/stores/taskStore';
 import type { CategoryName } from '@/types/task';
 
 const store = useTaskStore();
+
+const currentDate = new Date().toLocaleDateString('en-US', { 
+  weekday: 'short', 
+  month: 'short', 
+  day: 'numeric' 
+});
 
 const categoryCards = [
   { name: 'Health' as CategoryName, bgColor: 'bg-cyan-200', ionIcon: heartOutline },
