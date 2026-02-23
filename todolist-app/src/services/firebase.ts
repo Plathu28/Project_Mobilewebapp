@@ -19,12 +19,17 @@ import {
   getAuth,
   signInAnonymously,
   onAuthStateChanged,
+  // ✅ เพิ่มสิ่งเหล่านี้
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+  signOut,
+  updateProfile,
   type User,
 } from 'firebase/auth';
 
-// =============================================
-// 🔥 REPLACE with your own Firebase config
-// =============================================
 const firebaseConfig = {
   apiKey: "AIzaSyDiniw4ZMIncNeGdgciwDdOc0pfPicoulo",
   authDomain: "project-to-do-list-d3b36.firebaseapp.com",
@@ -35,21 +40,31 @@ const firebaseConfig = {
   measurementId: "G-YTMKDRNT6H"
 };
 
-
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Collection reference
+// ✅ Google Provider
+const googleProvider = new GoogleAuthProvider();
+
 const tasksCollection = collection(db, 'tasks');
 
 export {
   db,
   auth,
   tasksCollection,
+  googleProvider,
+  // Auth functions เดิม
   signInAnonymously,
   onAuthStateChanged,
+  // ✅ Auth functions ใหม่
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  sendPasswordResetEmail,
+  signOut,
+  updateProfile,
+  // Firestore
   collection,
   doc,
   addDoc,

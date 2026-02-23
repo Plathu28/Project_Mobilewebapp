@@ -5,7 +5,6 @@ import type { Task, Subtask, RoutineConfig, CategoryName } from '@/types/task';
 import {
   auth,
   tasksCollection,
-  signInAnonymously,
   onAuthStateChanged,
   addDoc,
   updateDoc,
@@ -30,21 +29,17 @@ export const useTaskStore = defineStore('tasks', () => {
   // ---- Auth ----
   async function initAuth(): Promise<void> {
     return new Promise((resolve) => {
-      onAuthStateChanged(auth, async (user) => {
+      onAuthStateChanged(auth, (user) => {
         if (user) {
           currentUser.value = user;
           listenToTasks();
-          resolve();
         } else {
-          // Auto sign-in anonymously for simplicity
-          try {
-            await signInAnonymously(auth);
-          } catch (e) {
-            console.error('Auth failed, using local mode', e);
-            loading.value = false;
-            resolve();
-          }
+          // ✅ ไม่ signInAnonymously แล้ว — ให้ router พา user ไปหน้า login เอง
+          currentUser.value = null;
+          tasks.value = [];
+          loading.value = false;
         }
+        resolve();
       });
     });
   }
