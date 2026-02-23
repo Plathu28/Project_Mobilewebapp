@@ -30,6 +30,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'today', component: () => import('@/views/TodayPage.vue') },
       { path: 'upcoming', component: () => import('@/views/UpcomingPage.vue') },
       { path: 'browse', component: () => import('@/views/BrowsePage.vue') },
+      { path: '/profile', component: () => import('@/views/ProfilePage.vue') },
+      {path: '/notifications',component: () => import('@/views/NotificationsPage.vue'),},
     ],
   },
   {

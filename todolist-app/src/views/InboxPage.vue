@@ -1,3 +1,4 @@
+
 <template>
   <ion-page>
     <ion-content :fullscreen="true" class="ion-padding inbox-content">
@@ -14,9 +15,12 @@
               You have {{ store.activeTasks.length }} tasks
             </p>
           </div>
-          <div class="w-12 h-12 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm">
-            <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User" />
-          </div>
+          <div 
+  @click="router.push('/profile')"
+  class="w-12 h-12 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer active:scale-90 transition-transform"
+>
+  <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User" />
+</div>
         </header>
 
         <!-- Category Cards -->
@@ -151,6 +155,9 @@ import {
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
 import type { CategoryName } from '@/types/task';
+
+import { useRoute, useRouter } from 'vue-router';
+const router = useRouter();
 
 const store = useTaskStore();
 
