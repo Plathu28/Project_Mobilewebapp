@@ -34,16 +34,23 @@
         <!-- Avatar + Name -->
         <div class="flex flex-col items-center py-8 px-4">
           <div class="relative mb-4">
+            <!-- แสดง photoURL ถ้ามี (Google login) ไม่งั้นใช้ avatar default -->
             <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
-              <img src="https://api.dicebear.com/9.x/avataaars/svg?seed=Felix" alt="User Avatar" />
+              <img
+                :src="currentUser?.photoURL || 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + (currentUser?.email || 'user')"
+                alt="User Avatar"
+              />
             </div>
             <button class="absolute bottom-0 right-0 w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center border-2 border-white">
               <ion-icon :icon="cameraOutline" class="text-white text-xs"></ion-icon>
             </button>
           </div>
-          <h2 class="text-2xl font-extrabold text-gray-900">Felix Johnson</h2>
-          <p class="text-gray-500 text-sm mt-1">felix.johnson@email.com</p>
-          <span class="mt-3 px-4 py-1 bg-gray-900 text-white text-xs font-semibold rounded-full">Pro Member</span>
+          <!-- displayName จาก Google หรือ fallback เป็นชื่อจาก email -->
+          <h2 class="text-2xl font-extrabold text-gray-900">
+            {{ currentUser?.displayName || emailToName(currentUser?.email) }}
+          </h2>
+          <p class="text-gray-500 text-sm mt-1">{{ currentUser?.email || '' }}</p>
+          
         </div>
 
         <!-- Stats Row -->
@@ -104,8 +111,7 @@
         <div class="relative bg-white rounded-t-3xl px-4 pt-4 pb-10 z-10">
           <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
           <h2 class="text-xl font-extrabold text-gray-900 mb-5 px-1">Settings</h2>
-          <div class="space-y-1 mb-6">
-          </div>
+          
           <button
             class="w-full py-4 rounded-2xl bg-red-50 text-red-500 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             @click="handleSignOut"
@@ -131,15 +137,28 @@ import {
   colorPaletteOutline, lockClosedOutline, helpCircleOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
+import { useAuth } from '@/composables/useAuth';
 
 const router = useRouter();
 const store = useTaskStore();
+const { user: currentUser, logout } = useAuth();
 
 const streakDays = 7;
 const showSettings = ref(false);
 
-function handleSignOut() {
+// แปลง email เป็นชื่อ เช่น "john.doe@gmail.com" → "John Doe"
+function emailToName(email?: string | null): string {
+  if (!email) return 'User';
+  const local = email.split('@')[0];
+  return local
+    .replace(/[._-]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function handleSignOut() {
   showSettings.value = false;
+  await logout();
+  router.replace('/login');
 }
 
 const favoriteLabels = [
@@ -153,13 +172,13 @@ interface MenuItem {
   action: (() => void) | null;
 }
 
-// หน้าหลัก — เหมือนรูปที่ขอ
 const menuItems: MenuItem[] = [
-  { label: 'Search',          icon: searchOutline,          action: null },
-  { label: 'Filters & Labels',icon: filtersIcon,            action: null },
-  { label: 'Completed',       icon: checkmarkCircleOutline, action: null },
-  { label: 'Analytics',       icon: barChartOutline,        action: null },
+  { label: 'Search',           icon: searchOutline,          action: () => router.push('/search') },
+  { label: 'Filters & Labels', icon: filtersIcon,            action: null },
+  { label: 'Completed',        icon: checkmarkCircleOutline, action: null },
+  { label: 'Analytics',        icon: barChartOutline,        action: null },
 ];
+
 
 </script>
 

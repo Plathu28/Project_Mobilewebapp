@@ -32,6 +32,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'browse', component: () => import('@/views/BrowsePage.vue') },
       { path: '/profile', component: () => import('@/views/ProfilePage.vue') },
       {path: '/notifications',component: () => import('@/views/NotificationsPage.vue'),},
+      { path: '/search', component: () => import('@/views/SearchPage.vue') },
     ],
   },
   {
