@@ -587,7 +587,7 @@ const menuItems: MenuItem[] = [
   { label: 'Search',           icon: searchOutline,          action: () => router.push('/search') },
   { label: 'Filters & Labels', icon: filtersIcon,            action: () => router.push('/filters-labels') },
   { label: 'Completed',        icon: checkmarkCircleOutline, action: () => router.push('/completed') }, // ✅ แก้ตรงนี้
-  { label: 'Analytics',        icon: barChartOutline,        action: null },
+  { label: 'Analytics',        icon: barChartOutline,        action: () => router.push('/analytics') },
 ];
 
 </script>
