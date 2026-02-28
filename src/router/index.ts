@@ -29,10 +29,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'inbox', component: () => import('@/views/InboxPage.vue') },
       { path: 'today', component: () => import('@/views/TodayPage.vue') },
       { path: 'upcoming', component: () => import('@/views/UpcomingPage.vue') },
-      { path: 'browse', component: () => import('@/views/BrowsePage.vue') },
-      { path: '/profile', component: () => import('@/views/ProfilePage.vue') },
-      { path: '/notifications', component: () => import('@/views/NotificationsPage.vue') },
-      { path: '/search', component: () => import('@/views/SearchPage.vue') },
+      { path: 'profile', component: () => import('@/views/ProfilePage.vue') },
     ],
   },
   {
@@ -40,9 +37,20 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/NewTaskPage.vue'),
     meta: { requiresAuth: true },
   },
-  // ==========================================
-  // เพิ่มหน้าเกี่ยวกับ Filters และ Labels ตรงนี้
-  // ==========================================
+  {
+    path: '/profile',
+    redirect: '/tabs/profile',
+  },
+  {
+    path: '/notifications',
+    component: () => import('@/views/NotificationsPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/search',
+    component: () => import('@/views/SearchPage.vue'),
+    meta: { requiresAuth: true },
+  },
   {
     path: '/filters-labels',
     component: () => import('@/views/FiltersLabelsPage.vue'),
@@ -68,9 +76,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/AddLabelPage.vue'),
     meta: { requiresAuth: true },
   },
-
   {
-    path: '/edit-filter/:id', // :id คือการบอกว่าจะส่งไอดีมาใน URL นะ
+    path: '/edit-filter/:id',
     component: () => import('@/views/EditFilterPage.vue'),
     meta: { requiresAuth: true },
   },
@@ -78,7 +85,12 @@ const routes: RouteRecordRaw[] = [
     path: '/edit-label/:id',
     component: () => import('@/views/EditLabelPage.vue'),
     meta: { requiresAuth: true },
-  }
+  },
+  {
+    path: '/completed',
+    component: () => import('@/views/CompletedPage.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
@@ -103,7 +115,6 @@ const authReadyPromise = new Promise<void>((resolve) => {
 });
 
 router.beforeEach(async (to) => {
-  // รอให้ Firebase auth พร้อมก่อนเสมอ
   await authReadyPromise;
 
   if (to.meta.requiresAuth && !currentUser) {

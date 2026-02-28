@@ -19,9 +19,9 @@
           <ion-label>Upcoming</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="browse" href="/tabs/browse">
-          <ion-icon :icon="gridOutline" />
-          <ion-label>Browse</ion-label>
+        <ion-tab-button tab="profile" href="/tabs/profile">
+          <ion-icon :icon="personCircleOutline" />
+          <ion-label>Profile</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
@@ -42,7 +42,7 @@ import {
   fileTrayFullOutline,
   calendarOutline,
   calendarNumberOutline,
-  gridOutline,
+  personCircleOutline,
 } from 'ionicons/icons';
 </script>
 
