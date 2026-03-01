@@ -33,13 +33,32 @@
           <div class="relative mb-4">
             <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
               <img
-                :src="currentUser?.photoURL || 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + (currentUser?.email || 'user')"
+                :src="avatarUrl"
                 alt="User Avatar"
+                class="w-full h-full object-cover"
               />
+              <!-- Upload loading overlay -->
+              <div
+                v-if="avatarUploading"
+                class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center"
+              >
+                <ion-spinner name="crescent" class="text-white w-6 h-6"></ion-spinner>
+              </div>
             </div>
-            <button class="absolute bottom-0 right-0 w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center border-2 border-white">
+            <button
+              @click="showAvatarOptions"
+              class="absolute bottom-0 right-0 w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center border-2 border-white active:scale-90 transition-transform"
+            >
               <ion-icon :icon="cameraOutline" class="text-white text-xs"></ion-icon>
             </button>
+            <!-- Hidden file input -->
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleFileSelected"
+            />
           </div>
           <h2 class="text-2xl font-extrabold text-gray-900">
             {{ currentUser?.displayName || emailToName(currentUser?.email) }}
@@ -251,19 +270,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { IonPage, IonContent, IonIcon, IonSpinner, toastController, alertController } from '@ionic/vue';
+import { IonPage, IonContent, IonIcon, IonSpinner, toastController, alertController, actionSheetController } from '@ionic/vue';
 import { useRouter } from 'vue-router';
 import {
   settingsOutline, cameraOutline, pricetagOutline, chevronForward,
   logOutOutline, notificationsOutline, schoolOutline, syncOutline,
   searchOutline, checkmarkCircleOutline, barChartOutline,
-  optionsOutline as filtersIcon,
+  optionsOutline as filtersIcon, imageOutline, trashOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
 import { useAuth } from '@/composables/useAuth';
 
-import { db, auth, collection, query, where, onSnapshot } from '@/services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { db, auth, storage, collection, query, where, onSnapshot, storageRef, uploadBytes, getDownloadURL } from '@/services/firebase';
+import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 
 import {
   authorizeClassroom,
@@ -280,6 +299,159 @@ const { user: currentUser, logout } = useAuth();
 
 const showSettings = ref(false);
 const showAllClassroom = ref(false);
+
+// ---- Avatar Upload ----
+const fileInput = ref<HTMLInputElement | null>(null);
+const avatarUploading = ref(false);
+const customAvatarUrl = ref<string | null>(null);
+
+const avatarUrl = computed(() => {
+  // Priority: custom uploaded → Google photoURL → DiceBear fallback
+  if (customAvatarUrl.value) return customAvatarUrl.value;
+  if (currentUser.value?.photoURL) return currentUser.value.photoURL;
+  return 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + (currentUser.value?.email || 'user');
+});
+
+async function showAvatarOptions() {
+  const buttons: any[] = [
+    {
+      text: 'Choose from Gallery',
+      icon: imageOutline,
+      handler: () => {
+        fileInput.value?.click();
+      },
+    },
+  ];
+
+  // Only show remove if user has a custom photo
+  if (currentUser.value?.photoURL || customAvatarUrl.value) {
+    buttons.push({
+      text: 'Remove Photo',
+      icon: trashOutline,
+      role: 'destructive',
+      handler: () => removeAvatar(),
+    });
+  }
+
+  buttons.push({
+    text: 'Cancel',
+    role: 'cancel',
+  });
+
+  const actionSheet = await actionSheetController.create({
+    header: 'Profile Photo',
+    buttons,
+  });
+  await actionSheet.present();
+}
+
+async function handleFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+
+  // Validate file
+  if (!file.type.startsWith('image/')) {
+    const toast = await toastController.create({
+      message: '❌ Please select an image file',
+      duration: 2000,
+      position: 'bottom',
+      color: 'danger',
+    });
+    await toast.present();
+    return;
+  }
+
+  // Max 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    const toast = await toastController.create({
+      message: '❌ Image must be under 5MB',
+      duration: 2000,
+      position: 'bottom',
+      color: 'danger',
+    });
+    await toast.present();
+    return;
+  }
+
+  await uploadAvatar(file);
+
+  // Reset input so same file can be selected again
+  input.value = '';
+}
+
+async function uploadAvatar(file: File) {
+  if (!currentUser.value) return;
+
+  avatarUploading.value = true;
+  try {
+    // Create storage path: avatars/{userId}/profile.{ext}
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `avatars/${currentUser.value.uid}/profile.${ext}`;
+    const fileRef = storageRef(storage, path);
+
+    // Upload
+    await uploadBytes(fileRef, file, {
+      contentType: file.type,
+    });
+
+    // Get download URL
+    const downloadUrl = await getDownloadURL(fileRef);
+
+    // Update Firebase Auth profile
+    await updateProfile(currentUser.value, {
+      photoURL: downloadUrl,
+    });
+
+    // Update local state immediately
+    customAvatarUrl.value = downloadUrl;
+
+    const toast = await toastController.create({
+      message: '✅ Profile photo updated!',
+      duration: 1500,
+      position: 'bottom',
+      color: 'success',
+    });
+    await toast.present();
+  } catch (err: any) {
+    console.error('Avatar upload failed:', err);
+    const toast = await toastController.create({
+      message: `❌ Upload failed: ${err.message || 'Unknown error'}`,
+      duration: 2500,
+      position: 'bottom',
+      color: 'danger',
+    });
+    await toast.present();
+  } finally {
+    avatarUploading.value = false;
+  }
+}
+
+async function removeAvatar() {
+  if (!currentUser.value) return;
+
+  avatarUploading.value = true;
+  try {
+    // Clear photoURL in Firebase Auth
+    await updateProfile(currentUser.value, {
+      photoURL: '',
+    });
+
+    customAvatarUrl.value = null;
+
+    const toast = await toastController.create({
+      message: '✅ Profile photo removed',
+      duration: 1500,
+      position: 'bottom',
+      color: 'success',
+    });
+    await toast.present();
+  } catch (err: any) {
+    console.error('Remove avatar failed:', err);
+  } finally {
+    avatarUploading.value = false;
+  }
+}
 
 const classroomConnected = ref(false);
 const classroomLoading = ref(false);
@@ -367,6 +539,11 @@ async function askReAddTask(title: string, courseName: string): Promise<boolean>
 }
 
 onMounted(async () => {
+  // Load existing avatar
+  if (currentUser.value?.photoURL) {
+    customAvatarUrl.value = currentUser.value.photoURL;
+  }
+
   if (isClassroomAuthorized()) {
     classroomConnected.value = true;
     try {
@@ -584,12 +761,11 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { label: 'Search',           icon: searchOutline,          action: () => router.push('/search') },
-  { label: 'Filters & Labels', icon: filtersIcon,            action: () => router.push('/filters-labels') },
-  { label: 'Completed',        icon: checkmarkCircleOutline, action: () => router.push('/completed') }, // ✅ แก้ตรงนี้
-  { label: 'Analytics',        icon: barChartOutline,        action: () => router.push('/analytics') },
+  { label: 'Search', icon: searchOutline, action: () => router.push('/search') },
+  { label: 'Filters & Labels', icon: filtersIcon, action: () => router.push('/filters-labels') },
+  { label: 'Completed', icon: checkmarkCircleOutline, action: null },
+  { label: 'Analytics', icon: barChartOutline, action: null },
 ];
-
 </script>
 
 <style scoped>

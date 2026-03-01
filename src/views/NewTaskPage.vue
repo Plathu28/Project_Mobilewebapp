@@ -35,8 +35,24 @@
             </div>
           </div>
 
+          <!-- Selected Labels -->
+          <div v-if="selectedLabels.length > 0" class="flex flex-wrap gap-2 mt-4">
+            <span
+              v-for="label in selectedLabels"
+              :key="label.id"
+              class="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
+              :class="getLabelChipClass(label.color)"
+            >
+              <ion-icon :icon="pricetagOutline" class="text-xs"></ion-icon>
+              {{ label.name }}
+              <button @click="removeLabel(label.id)" class="ml-0.5">
+                <ion-icon :icon="closeCircle" class="text-xs opacity-60"></ion-icon>
+              </button>
+            </span>
+          </div>
+
           <!-- Selected info chips -->
-          <div class="flex flex-wrap gap-2 mt-6">
+          <div class="flex flex-wrap gap-2 mt-4">
             <span
               class="px-3 py-1.5 rounded-full text-sm font-semibold"
               :class="getCategoryChipClass(selectedCategory)"
@@ -77,15 +93,13 @@
         <div class="px-6 pb-6">
           <!-- Action Row -->
           <div class="flex items-center gap-3 mb-4">
-            <!-- Date/Time Button -->
             <button
-              @click="showDateModal = true"
+              @click="openDateModal"
               class="w-12 h-12 bg-gray-900 text-white rounded-full flex items-center justify-center"
             >
               <ion-icon :icon="calendarOutline" class="text-xl"></ion-icon>
             </button>
 
-            <!-- Save Button -->
             <button
               @click="saveTask"
               :disabled="!taskTitle.trim()"
@@ -96,8 +110,7 @@
           </div>
 
           <!-- Extra Actions -->
-          <div class="flex items-center gap-3">
-            <!-- Category -->
+          <div class="flex items-center gap-3 relative">
             <button
               @click="showCategoryPicker = true"
               class="px-4 py-2.5 border border-gray-200 rounded-full text-sm font-semibold text-gray-700 active:bg-gray-100"
@@ -105,7 +118,6 @@
               {{ selectedCategory }}
             </button>
 
-            <!-- Priority -->
             <button
               @click="showPriorityPicker = true"
               class="px-4 py-2.5 border border-gray-200 rounded-full text-sm font-semibold text-gray-700 active:bg-gray-100"
@@ -113,24 +125,52 @@
               Priority
             </button>
 
-            <!-- More -->
-            <button
-              @click="addSubtask"
-              class="px-3 py-2.5 border border-gray-200 rounded-full text-gray-500 active:bg-gray-100"
-            >
-              <ion-icon :icon="ellipsisHorizontal" class="text-lg"></ion-icon>
-            </button>
+            <!-- Three Dot → Dropup Menu -->
+            <div class="relative">
+              <button
+                @click="showMoreMenu = !showMoreMenu"
+                class="px-3 py-2.5 border border-gray-200 rounded-full text-gray-500 active:bg-gray-100"
+              >
+                <ion-icon :icon="ellipsisHorizontal" class="text-lg"></ion-icon>
+              </button>
+
+              <!-- Dropup -->
+              <transition name="dropup">
+                <div
+                  v-if="showMoreMenu"
+                  class="absolute bottom-full mb-2 right-0 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden z-50 w-48"
+                >
+                  <button
+                    @click="addSubtask(); showMoreMenu = false"
+                    class="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-gray-50 transition-colors"
+                  >
+                    <ion-icon :icon="listOutline" class="text-lg text-gray-600"></ion-icon>
+                    <span class="text-sm font-semibold text-gray-800">Add Subtask</span>
+                  </button>
+                  <div class="h-px bg-gray-100"></div>
+                  <button
+                    @click="showLabelPicker = true; showMoreMenu = false"
+                    class="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-gray-50 transition-colors"
+                  >
+                    <ion-icon :icon="pricetagOutline" class="text-lg text-gray-600"></ion-icon>
+                    <span class="text-sm font-semibold text-gray-800">Add Label</span>
+                  </button>
+                </div>
+              </transition>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- Tap outside to close dropup -->
+      <div v-if="showMoreMenu" class="fixed inset-0 z-40" @click="showMoreMenu = false"></div>
+
       <!-- ==========================================
-           DATE MODAL (full-page sheet)
+           DATE MODAL
            ========================================== -->
       <ion-modal :is-open="showDateModal" @didDismiss="showDateModal = false" :initial-breakpoint="0.9" :breakpoints="[0, 0.9]">
         <div class="p-6 h-full overflow-y-auto">
 
-          <!-- Header -->
           <div class="flex items-center gap-3 mb-6">
             <h2 class="text-3xl font-extrabold text-gray-900">Date</h2>
             <span class="text-2xl text-blue-400 font-semibold">
@@ -141,7 +181,6 @@
             </button>
           </div>
 
-          <!-- Quick Date Options -->
           <div class="space-y-1 mb-6">
             <button
               v-for="opt in quickDateOptions"
@@ -162,21 +201,17 @@
 
           <hr class="border-gray-200 mb-4" />
 
-          <!-- Calendar -->
           <div class="mb-6">
-            <!-- Month Navigation -->
             <div v-for="month in visibleMonths" :key="month.key" class="mb-4">
               <div class="flex justify-between items-center mb-3">
                 <h3 class="text-base font-bold text-gray-700">{{ month.label }}</h3>
               </div>
 
-              <!-- Day headers -->
               <div class="grid grid-cols-7 gap-1 mb-2">
                 <span v-for="d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="d"
                   class="text-center text-xs font-semibold text-gray-400">{{ d }}</span>
               </div>
 
-              <!-- Days -->
               <div class="grid grid-cols-7 gap-1">
                 <div v-for="(day, i) in month.days" :key="i" class="aspect-square flex items-center justify-center">
                   <button
@@ -198,7 +233,6 @@
 
           <hr class="border-gray-200 mb-4" />
 
-          <!-- Add Time -->
           <button
             @click="showTimeModal = true"
             class="flex items-center justify-between w-full py-4 text-left"
@@ -210,7 +244,6 @@
 
           <hr class="border-gray-200" />
 
-          <!-- Routine -->
           <button
             @click="showRoutineMenu = true"
             class="flex items-center justify-between w-full py-4 text-left"
@@ -222,7 +255,6 @@
 
           <hr class="border-gray-200 mb-4" />
 
-          <!-- Save -->
           <button
             @click="showDateModal = false"
             class="w-full py-3.5 bg-gray-900 text-white font-bold text-lg rounded-full mt-4 active:scale-95 transition-transform"
@@ -239,7 +271,6 @@
         <div class="p-6">
           <h3 class="text-lg font-medium text-gray-700 mb-6">select time</h3>
 
-          <!-- Start / End tabs -->
           <div class="flex gap-3 mb-6">
             <button
               @click="timeTab = 'start'"
@@ -261,7 +292,6 @@
             >End</button>
           </div>
 
-          <!-- Time Display -->
           <div class="flex items-center gap-2 mb-8">
             <div class="flex items-center gap-1">
               <input
@@ -317,10 +347,9 @@
             </div>
           </div>
 
-          <!-- Buttons -->
           <div class="flex gap-3">
             <button
-              @click="showTimeModal = false"
+              @click="cancelTime"
               class="flex-1 py-3 border border-gray-200 rounded-full text-base font-bold text-gray-600"
             >CANCEL</button>
             <button
@@ -332,7 +361,7 @@
       </ion-modal>
 
       <!-- ==========================================
-           ROUTINE MENU (Action Sheet style)
+           ROUTINE MENU
            ========================================== -->
       <ion-modal :is-open="showRoutineMenu" @didDismiss="showRoutineMenu = false" :initial-breakpoint="0.45" :breakpoints="[0, 0.45]">
         <div class="p-6">
@@ -366,7 +395,6 @@
         <div class="p-6">
           <h2 class="text-2xl font-extrabold text-gray-900 mb-6">Custom Routine</h2>
 
-          <!-- Based on -->
           <div class="mb-5">
             <p class="text-sm font-semibold text-gray-500 mb-2">Based on</p>
             <div class="flex gap-2">
@@ -399,7 +427,6 @@
 
           <hr class="border-gray-200 mb-5" />
 
-          <!-- Every X unit -->
           <div class="mb-5">
             <p class="text-sm font-semibold text-gray-500 mb-3">Every</p>
             <div class="flex items-center gap-3">
@@ -428,7 +455,6 @@
 
           <hr class="border-gray-200 mb-5" />
 
-          <!-- Ends -->
           <div class="mb-6">
             <p class="text-sm font-semibold text-gray-500 mb-3">Ends</p>
             <div class="space-y-3">
@@ -465,7 +491,6 @@
             </div>
           </div>
 
-          <!-- Buttons -->
           <div class="flex gap-3">
             <button
               @click="showCustomRoutine = false"
@@ -529,12 +554,52 @@
         </div>
       </ion-modal>
 
+      <!-- ==========================================
+           LABEL PICKER
+           ========================================== -->
+      <ion-modal :is-open="showLabelPicker" @didDismiss="showLabelPicker = false" :initial-breakpoint="0.45" :breakpoints="[0, 0.45]">
+        <div class="p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">Select Labels</h3>
+
+          <div v-if="availableLabels.length === 0" class="text-center py-8">
+            <p class="text-gray-400 text-sm">No labels found</p>
+            <button
+              @click="showLabelPicker = false; router.push('/add-label')"
+              class="mt-3 text-blue-500 text-sm font-semibold"
+            >
+              + Create a label
+            </button>
+          </div>
+
+          <div v-else class="space-y-1 max-h-64 overflow-y-auto">
+            <button
+              v-for="label in availableLabels"
+              :key="label.id"
+              @click="toggleLabel(label)"
+              class="w-full py-3 px-3 text-left rounded-xl flex items-center gap-3 hover:bg-gray-50 transition-colors"
+              :class="{ 'bg-blue-50': isLabelSelected(label.id) }"
+            >
+              <ion-icon :icon="pricetagOutline" :color="label.color || 'medium'" class="text-lg"></ion-icon>
+              <span class="font-semibold text-gray-800 flex-1">{{ label.name }}</span>
+              <ion-icon v-if="isLabelSelected(label.id)" :icon="checkmarkOutline" class="text-blue-500"></ion-icon>
+            </button>
+          </div>
+
+          <button
+            @click="showLabelPicker = false"
+            class="w-full py-3 bg-gray-900 text-white font-bold text-sm rounded-full mt-4 active:scale-95"
+          >
+            Done
+          </button>
+        </div>
+      </ion-modal>
+
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage, IonContent, IonIcon, IonModal, toastController,
@@ -542,9 +607,13 @@ import {
 import {
   close, closeCircle, calendarOutline, pencilOutline,
   chevronForward, repeatOutline, ellipsisHorizontal,
+  listOutline, pricetagOutline, checkmarkOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
 import type { CategoryName, RoutineConfig, Subtask } from '@/types/task';
+
+import { db, auth, collection, query, where, onSnapshot } from '@/services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const router = useRouter();
 const store = useTaskStore();
@@ -560,6 +629,67 @@ const selectedPriority = ref<'low' | 'medium' | 'high' | null>(null);
 const routineConfig = ref<RoutineConfig | null>(null);
 const subtasks = ref<Subtask[]>([]);
 
+// ---- Labels ----
+interface LabelItem {
+  id: string;
+  name: string;
+  color: string;
+}
+const availableLabels = ref<LabelItem[]>([]);
+const selectedLabels = ref<LabelItem[]>([]);
+const showLabelPicker = ref(false);
+let unsubscribeLabels: any = null;
+
+onMounted(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (unsubscribeLabels) unsubscribeLabels();
+      const q = query(collection(db, 'labels'), where('userId', '==', user.uid));
+      unsubscribeLabels = onSnapshot(q, (snapshot) => {
+        availableLabels.value = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          name: doc.data().name,
+          color: doc.data().color || 'medium',
+        }));
+      });
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribeLabels) unsubscribeLabels();
+});
+
+function toggleLabel(label: LabelItem) {
+  const idx = selectedLabels.value.findIndex((l) => l.id === label.id);
+  if (idx >= 0) {
+    selectedLabels.value.splice(idx, 1);
+  } else {
+    selectedLabels.value.push(label);
+  }
+}
+
+function isLabelSelected(id: string): boolean {
+  return selectedLabels.value.some((l) => l.id === id);
+}
+
+function removeLabel(id: string) {
+  selectedLabels.value = selectedLabels.value.filter((l) => l.id !== id);
+}
+
+function getLabelChipClass(color: string): string {
+  const map: Record<string, string> = {
+    primary: 'bg-blue-100 text-blue-700',
+    secondary: 'bg-cyan-100 text-cyan-700',
+    tertiary: 'bg-purple-100 text-purple-700',
+    success: 'bg-green-100 text-green-700',
+    warning: 'bg-amber-100 text-amber-700',
+    danger: 'bg-red-100 text-red-600',
+    medium: 'bg-gray-100 text-gray-700',
+  };
+  return map[color] || 'bg-gray-100 text-gray-700';
+}
+
 // ---- Modals ----
 const showDateModal = ref(false);
 const showTimeModal = ref(false);
@@ -567,6 +697,16 @@ const showRoutineMenu = ref(false);
 const showCustomRoutine = ref(false);
 const showCategoryPicker = ref(false);
 const showPriorityPicker = ref(false);
+const showMoreMenu = ref(false);
+
+// ---- Open date modal with today auto-selected ----
+function openDateModal() {
+  if (!selectedDate.value) {
+    const today = new Date();
+    selectedDate.value = today.toISOString().split('T')[0];
+  }
+  showDateModal.value = true;
+}
 
 // ---- Time Picker State ----
 const timeTab = ref<'start' | 'end'>('start');
@@ -576,6 +716,8 @@ const tempStartAmPm = ref<'AM' | 'PM'>('AM');
 const tempEndHour = ref('10');
 const tempEndMin = ref('00');
 const tempEndAmPm = ref<'AM' | 'PM'>('AM');
+// Track if user manually picked a duration
+const manualDuration = ref<number | null>(null);
 
 const currentAmPm = computed(() =>
   timeTab.value === 'start' ? tempStartAmPm.value : tempEndAmPm.value
@@ -585,43 +727,92 @@ function setHour(e: Event) {
   const val = (e.target as HTMLInputElement).value.padStart(2, '0');
   if (timeTab.value === 'start') tempStartHour.value = val;
   else tempEndHour.value = val;
+  // User manually changed time → clear manual duration so it recalculates
+  manualDuration.value = null;
 }
 
 function setMinute(e: Event) {
   const val = (e.target as HTMLInputElement).value.padStart(2, '0');
   if (timeTab.value === 'start') tempStartMin.value = val;
   else tempEndMin.value = val;
+  manualDuration.value = null;
 }
 
 function setAmPm(v: 'AM' | 'PM') {
   if (timeTab.value === 'start') tempStartAmPm.value = v;
   else tempEndAmPm.value = v;
+  manualDuration.value = null;
 }
 
+// ---- Convert 12h to 24h ----
+function to24h(hour: number, ampm: 'AM' | 'PM'): number {
+  if (ampm === 'PM' && hour !== 12) return hour + 12;
+  if (ampm === 'AM' && hour === 12) return 0;
+  return hour;
+}
+
+// ---- Convert 24h to 12h ----
+function to12h(hour24: number): { hour: number; ampm: 'AM' | 'PM' } {
+  if (hour24 === 0) return { hour: 12, ampm: 'AM' };
+  if (hour24 < 12) return { hour: hour24, ampm: 'AM' };
+  if (hour24 === 12) return { hour: 12, ampm: 'PM' };
+  return { hour: hour24 - 12, ampm: 'PM' };
+}
+
+// ---- Quick Duration: set duration AND update end time ----
 function setQuickDuration(mins: number) {
-  duration.value = duration.value === mins ? null : mins;
+  if (manualDuration.value === mins) {
+    // Toggle off
+    manualDuration.value = null;
+    duration.value = null;
+    return;
+  }
+
+  manualDuration.value = mins;
+  duration.value = mins;
+
+  // Auto-update end time = start time + duration
+  const startH24 = to24h(parseInt(tempStartHour.value), tempStartAmPm.value);
+  const startM = parseInt(tempStartMin.value);
+  const totalStartMins = startH24 * 60 + startM;
+  const totalEndMins = totalStartMins + mins;
+
+  const endH24 = Math.floor(totalEndMins / 60) % 24;
+  const endM = totalEndMins % 60;
+  const { hour: endH12, ampm: endAmPm } = to12h(endH24);
+
+  tempEndHour.value = endH12.toString().padStart(2, '0');
+  tempEndMin.value = endM.toString().padStart(2, '0');
+  tempEndAmPm.value = endAmPm;
 }
 
 function confirmTime() {
-  const sh = parseInt(tempStartHour.value);
-  const sm = tempStartMin.value;
-  const sap = tempStartAmPm.value;
-  let sh24 = sap === 'PM' && sh !== 12 ? sh + 12 : (sap === 'AM' && sh === 12 ? 0 : sh);
-  startTime.value = `${sh24.toString().padStart(2, '0')}:${sm}`;
+  // Calculate 24h values
+  const sh24 = to24h(parseInt(tempStartHour.value), tempStartAmPm.value);
+  const sm = parseInt(tempStartMin.value);
+  startTime.value = `${sh24.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}`;
 
-  const eh = parseInt(tempEndHour.value);
-  const em = tempEndMin.value;
-  const eap = tempEndAmPm.value;
-  let eh24 = eap === 'PM' && eh !== 12 ? eh + 12 : (eap === 'AM' && eh === 12 ? 0 : eh);
-  endTime.value = `${eh24.toString().padStart(2, '0')}:${em}`;
+  const eh24 = to24h(parseInt(tempEndHour.value), tempEndAmPm.value);
+  const em = parseInt(tempEndMin.value);
+  endTime.value = `${eh24.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
 
-  // Auto calc duration if not set
-  if (!duration.value) {
-    const startMins = sh24 * 60 + parseInt(sm);
-    const endMins = eh24 * 60 + parseInt(em);
-    if (endMins > startMins) duration.value = endMins - startMins;
+  // If user picked a quick duration, use that directly
+  if (manualDuration.value) {
+    duration.value = manualDuration.value;
+  } else {
+    // Otherwise calculate from start/end
+    const startMins = sh24 * 60 + sm;
+    const endMins = eh24 * 60 + em;
+    if (endMins > startMins) {
+      duration.value = endMins - startMins;
+    }
   }
 
+  showTimeModal.value = false;
+}
+
+function cancelTime() {
+  manualDuration.value = null;
   showTimeModal.value = false;
 }
 
@@ -718,7 +909,7 @@ const visibleMonths = computed(() => {
 
 function getMonthDays(year: number, month: number): (number | null)[] {
   const firstDay = new Date(year, month, 1).getDay();
-  const offset = firstDay === 0 ? 6 : firstDay - 1; // Monday start
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: (number | null)[] = Array(offset).fill(null);
   for (let i = 1; i <= daysInMonth; i++) days.push(i);
@@ -774,9 +965,7 @@ function clearDate() {
   selectedDate.value = null;
 }
 
-function editDateManually() {
-  // Focus on calendar area
-}
+function editDateManually() {}
 
 // ---- Helpers ----
 const allCategories: CategoryName[] = ['Health', 'Work', 'Mental Health', 'Others'];
@@ -867,5 +1056,21 @@ input[type='number']::-webkit-outer-spin-button {
 
 input[type='number'] {
   -moz-appearance: textfield;
+}
+
+/* Dropup animation */
+.dropup-enter-active {
+  transition: all 0.2s ease-out;
+}
+.dropup-leave-active {
+  transition: all 0.15s ease-in;
+}
+.dropup-enter-from {
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+}
+.dropup-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
 }
 </style>

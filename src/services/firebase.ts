@@ -19,7 +19,6 @@ import {
   getAuth,
   signInAnonymously,
   onAuthStateChanged,
-  // ✅ เพิ่มสิ่งเหล่านี้
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -29,6 +28,13 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth';
+// ✅ Firebase Storage สำหรับ upload รูปโปรไฟล์
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiniw4ZMIncNeGdgciwDdOc0pfPicoulo",
@@ -43,8 +49,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-// ✅ Google Provider
+// Google Provider
 const googleProvider = new GoogleAuthProvider();
 
 const tasksCollection = collection(db, 'tasks');
@@ -52,12 +59,12 @@ const tasksCollection = collection(db, 'tasks');
 export {
   db,
   auth,
+  storage,
   tasksCollection,
   googleProvider,
-  // Auth functions เดิม
+  // Auth functions
   signInAnonymously,
   onAuthStateChanged,
-  // ✅ Auth functions ใหม่
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -76,6 +83,10 @@ export {
   orderBy,
   onSnapshot,
   Timestamp,
+  // ✅ Storage
+  storageRef,
+  uploadBytes,
+  getDownloadURL,
 };
 
 export type { User, Unsubscribe };
