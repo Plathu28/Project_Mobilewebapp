@@ -47,11 +47,51 @@
           label="Query" 
           label-placement="stacked" 
           fill="outline" 
-          :rows="4"
+          :rows="3"
           class="custom-input"
           :maxlength="1024"
+          placeholder="e.g. today & high"
         ></ion-textarea>
-        <div class="text-right text-xs text-gray-500 mt-1 px-1">{{ queryText.length }}/1024</div>
+        <div class="flex justify-between text-xs mt-1 px-1">
+          <!-- ✅ Live validation -->
+          <div v-if="queryText.trim()">
+            <span v-if="queryValidation.isValid" class="text-green-500 flex items-center gap-1">
+              <ion-icon :icon="checkmarkCircleOutline" class="text-xs"></ion-icon>
+              Valid: {{ queryValidation.description }}
+            </span>
+            <div v-else>
+              <span v-for="err in queryValidation.errors" :key="err" class="text-red-400 flex items-center gap-1">
+                <ion-icon :icon="alertCircleOutline" class="text-xs"></ion-icon>
+                {{ err }}
+              </span>
+            </div>
+          </div>
+          <span v-else class="text-gray-400">Enter a query using keywords below</span>
+          <span class="text-gray-500">{{ queryText.length }}/1024</span>
+        </div>
+      </div>
+
+      <!-- ✅ Quick keyword chips -->
+      <div class="mt-4 px-1">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Quick Add Keywords</p>
+        <div class="flex flex-wrap gap-1.5">
+          <button v-for="kw in quickKeywords" :key="kw.keyword"
+            @click="insertKeyword(kw.keyword)"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-semibold active:scale-95 transition-transform"
+            :class="getKeywordBadgeClass(kw.type)">
+            {{ kw.keyword }}
+          </button>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button @click="insertOperator('&')"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 active:scale-95">
+            & AND
+          </button>
+          <button @click="insertOperator('|')"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-100 text-gray-600 active:scale-95">
+            | OR
+          </button>
+        </div>
       </div>
     </ion-content>
   </ion-page>
@@ -60,13 +100,26 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, IonTextarea, IonList, IonItem, IonLabel, IonSpinner, alertController } from '@ionic/vue';
-import { checkmarkOutline, colorFillOutline, heartOutline, heart } from 'ionicons/icons';
+import {
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
+  IonBackButton, IonButton, IonIcon, IonInput, IonTextarea, IonList,
+  IonItem, IonLabel, IonSpinner, IonNote, alertController,
+} from '@ionic/vue';
+import {
+  checkmarkOutline, colorFillOutline, heartOutline, heart,
+  checkmarkCircleOutline, alertCircleOutline,
+} from 'ionicons/icons';
 
-// ใช้ฟังก์ชันที่คุณ Export ไว้แล้วจาก firebase.ts
 import { db, auth, collection, addDoc, Timestamp } from '@/services/firebase';
+import { parseQuery, getKeywordSuggestions } from '@/services/filterEngine';
+
+const router = useRouter();
+const filterName = ref('');
+const queryText = ref('');
+const isFavorite = ref(false);
+const isSaving = ref(false);
 const selectedColor = ref('medium');
-// คำนวณชื่อสีเพื่อเอาไปแสดงผลให้สวยๆ
+
 const colorNameDisplay = computed(() => {
   const map: Record<string, string> = {
     primary: 'Blue', secondary: 'Cyan', tertiary: 'Purple', 
@@ -75,8 +128,37 @@ const colorNameDisplay = computed(() => {
   return map[selectedColor.value] || 'Gray';
 });
 
+// ✅ Live query validation
+const queryValidation = computed(() => parseQuery(queryText.value));
 
-// ✅ ฟังก์ชันเปิดป๊อปอัปเลือกสี
+// ✅ Quick keyword chips
+const quickKeywords = computed(() => getKeywordSuggestions().slice(0, 16));
+
+function getKeywordBadgeClass(type: string): string {
+  const map: Record<string, string> = {
+    date: 'bg-blue-50 text-blue-600',
+    category: 'bg-green-50 text-green-600',
+    priority: 'bg-red-50 text-red-600',
+    routine: 'bg-purple-50 text-purple-600',
+    status: 'bg-amber-50 text-amber-600',
+  };
+  return map[type] || 'bg-gray-50 text-gray-600';
+}
+
+function insertKeyword(kw: string) {
+  if (queryText.value.trim() && !queryText.value.trim().endsWith('&') && !queryText.value.trim().endsWith('|')) {
+    queryText.value = queryText.value.trim() + ' & ' + kw;
+  } else {
+    queryText.value = queryText.value.trim() ? queryText.value.trim() + ' ' + kw : kw;
+  }
+}
+
+function insertOperator(op: string) {
+  if (queryText.value.trim()) {
+    queryText.value = queryText.value.trim() + ' ' + op + ' ';
+  }
+}
+
 const openColorPicker = async () => {
   const alert = await alertController.create({
     header: 'Select Color',
@@ -96,18 +178,11 @@ const openColorPicker = async () => {
   });
   await alert.present();
 };
-const router = useRouter();
-const filterName = ref('');
-const queryText = ref('');
-const isFavorite = ref(false);
-const isSaving = ref(false);
 
 const saveFilter = async () => {
   if (!filterName.value.trim() || !auth.currentUser) return;
-  
   isSaving.value = true;
   try {
-    // บันทึกข้อมูลลง Collection 'filters'
     await addDoc(collection(db, 'filters'), {
       name: filterName.value.trim(),
       query: queryText.value.trim(),
@@ -116,11 +191,9 @@ const saveFilter = async () => {
       userId: auth.currentUser.uid,
       createdAt: Timestamp.now()
     });
-    
     router.back();
   } catch (error) {
     console.error("Error adding filter: ", error);
-    alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
   } finally {
     isSaving.value = false;
   }
@@ -128,8 +201,5 @@ const saveFilter = async () => {
 </script>
 
 <style scoped>
-.custom-input {
-  --border-color: #fbd38d;
-  --border-radius: 8px;
-}
+.custom-input { --border-color: #fbd38d; --border-radius: 8px; }
 </style>

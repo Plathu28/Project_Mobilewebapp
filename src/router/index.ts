@@ -37,6 +37,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/NewTaskPage.vue'),
     meta: { requiresAuth: true },
   },
+  // ✅ Edit task route
+  {
+    path: '/edit-task/:id',
+    component: () => import('@/views/EditTaskPage.vue'),
+    meta: { requiresAuth: true },
+  },
   {
     path: '/profile',
     redirect: '/tabs/profile',
@@ -96,8 +102,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/AnalyticsPage.vue'),
     meta: { requiresAuth: true },
   },
-  { path: '/label/:id', 
+  {
+    path: '/label/:id', 
     component: () => import('@/views/LabelDetailPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  // ✅ Filter detail route
+  {
+    path: '/filter/:id',
+    component: () => import('@/views/FilterDetailPage.vue'),
     meta: { requiresAuth: true },
   },
 ];

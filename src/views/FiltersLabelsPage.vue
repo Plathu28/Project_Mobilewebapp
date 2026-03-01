@@ -21,21 +21,26 @@
 
       <ion-list lines="none">
         <ion-item-sliding v-for="filter in filtersList" :key="filter.id">
-          <ion-item button @click="toggleFilterFavorite(filter)">
+          <!-- ✅ Navigate to filter detail page -->
+          <ion-item button @click="router.push(`/filter/${filter.id}`)">
             <ion-icon slot="start" :icon="funnelOutline" :color="filter.color || 'primary'"></ion-icon>
-            <ion-label>{{ filter.name }}</ion-label>
+            <ion-label>
+              <h2>{{ filter.name }}</h2>
+              <!-- ✅ Show query preview with validation -->
+              <p v-if="filter.query" class="text-xs mt-0.5" :class="getQueryValidClass(filter.query)">
+                <ion-icon :icon="getQueryValidIcon(filter.query)" class="text-xs mr-0.5 align-middle"></ion-icon>
+                {{ filter.query }}
+              </p>
+            </ion-label>
             <ion-icon v-if="filter.isFavorite" slot="end" :icon="heart" color="danger" size="small"></ion-icon>
           </ion-item>
           <ion-item-options side="end">
-            <!-- Toggle favorite -->
             <ion-item-option :color="filter.isFavorite ? 'medium' : 'warning'" @click="toggleFilterFavorite(filter)">
               <ion-icon slot="icon-only" :icon="filter.isFavorite ? heartDislike : heart"></ion-icon>
             </ion-item-option>
-            <!-- Edit -->
             <ion-item-option color="primary" @click="openEditFilter(filter)">
               <ion-icon slot="icon-only" :icon="createOutline"></ion-icon>
             </ion-item-option>
-            <!-- Delete -->
             <ion-item-option color="danger" @click="confirmDeleteFilter(filter.id)">
               <ion-icon slot="icon-only" :icon="trashOutline"></ion-icon>
             </ion-item-option>
@@ -62,21 +67,19 @@
 
       <ion-list lines="none">
         <ion-item-sliding v-for="label in labelsList" :key="label.id">
+          <!-- ✅ Navigate to label detail page -->
           <ion-item button @click="router.push(`/label/${label.id}`)">
             <ion-icon slot="start" :icon="pricetagOutline" :color="label.color || 'medium'"></ion-icon>
             <ion-label>{{ label.name }}</ion-label>
             <ion-icon v-if="label.isFavorite" slot="end" :icon="heart" color="danger" size="small"></ion-icon>
           </ion-item>
           <ion-item-options side="end">
-            <!-- Toggle favorite -->
             <ion-item-option :color="label.isFavorite ? 'medium' : 'warning'" @click="toggleLabelFavorite(label)">
               <ion-icon slot="icon-only" :icon="label.isFavorite ? heartDislike : heart"></ion-icon>
             </ion-item-option>
-            <!-- Edit -->
             <ion-item-option color="primary" @click="openEditLabel(label)">
               <ion-icon slot="icon-only" :icon="createOutline"></ion-icon>
             </ion-item-option>
-            <!-- Delete -->
             <ion-item-option color="danger" @click="confirmDeleteLabel(label.id)">
               <ion-icon slot="icon-only" :icon="trashOutline"></ion-icon>
             </ion-item-option>
@@ -148,13 +151,17 @@ import { useRouter } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonItemSliding, IonItemOptions, IonItemOption,
-  IonLabel, IonIcon, IonButtons, IonBackButton, IonButton,
+  IonLabel, IonIcon, IonButtons, IonBackButton, IonButton, IonNote,
   alertController, toastController,
 } from '@ionic/vue';
-import { addOutline, funnelOutline, settingsOutline, pricetagOutline, heart, heartDislike, trashOutline, createOutline } from 'ionicons/icons';
+import {
+  addOutline, funnelOutline, settingsOutline, pricetagOutline, heart,
+  heartDislike, trashOutline, createOutline, checkmarkCircleOutline, alertCircleOutline,
+} from 'ionicons/icons';
 import { db, auth, collection, query, where, onSnapshot } from '@/services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { parseQuery } from '@/services/filterEngine';
 
 const filtersList = ref<any[]>([]);
 const labelsList = ref<any[]>([]);
@@ -180,6 +187,17 @@ const ionicColors = [
   { value: 'danger',    hex: '#f04141' },
   { value: 'medium',    hex: '#989aa2' },
 ];
+
+// ✅ Query validation helpers
+function getQueryValidClass(queryStr: string): string {
+  const result = parseQuery(queryStr);
+  return result.isValid ? 'text-green-500' : 'text-red-400';
+}
+
+function getQueryValidIcon(queryStr: string): string {
+  const result = parseQuery(queryStr);
+  return result.isValid ? checkmarkCircleOutline : alertCircleOutline;
+}
 
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {

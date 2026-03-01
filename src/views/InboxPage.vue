@@ -15,7 +15,6 @@
             </p>
           </div>
 
-          <!-- Avatar — ใช้รูปจริงจาก auth -->
           <div
             @click="router.push('/profile')"
             class="w-12 h-12 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer active:scale-90 transition-transform flex-shrink-0"
@@ -73,7 +72,7 @@
                 </ion-item-option>
               </ion-item-options>
 
-              <ion-item class="task-item">
+              <ion-item class="task-item" @click="openEditTask(task.id)">
                 <div class="flex items-start gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 w-full my-1">
                   <div
                     style="min-width: 28px; min-height: 28px;"
@@ -174,6 +173,11 @@ function getCategoryBadgeClass(cat: CategoryName) {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ✅ Navigate to edit task page
+function openEditTask(taskId: string) {
+  router.push(`/edit-task/${taskId}`);
 }
 
 async function handleComplete(taskId: string) {
