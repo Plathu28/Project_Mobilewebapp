@@ -12,6 +12,7 @@ export interface Task {
   userId: string;
   createdAt: string;
   subtasks: Subtask[];
+  labels: string[];  
 }
 
 export interface Subtask {

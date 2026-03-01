@@ -96,6 +96,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/AnalyticsPage.vue'),
     meta: { requiresAuth: true },
   },
+  { path: '/label/:id', 
+    component: () => import('@/views/LabelDetailPage.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
