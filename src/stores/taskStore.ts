@@ -73,6 +73,7 @@ export const useTaskStore = defineStore('tasks', () => {
     const newTask = {
       ...task,
       userId: currentUser.value.uid,
+      labels: task.labels || [],
       createdAt: new Date().toISOString(),
     };
     await addDoc(tasksCollection, newTask);

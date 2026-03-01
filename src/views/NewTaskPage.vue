@@ -1025,6 +1025,8 @@ async function saveTask() {
     routine: routineConfig.value,
     completed: false,
     subtasks: subtasks.value.filter((s) => s.title.trim()),
+    // เพิ่มบรรทัดนี้เข้าไปครับ เพื่อส่ง array ของ label ID
+    labels: selectedLabels.value.map(label => label.id), 
   });
 
   const toast = await toastController.create({
