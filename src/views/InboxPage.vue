@@ -3,7 +3,6 @@
     <ion-content :fullscreen="true" class="ion-padding inbox-content">
       <div class="pb-28 px-4 pt-2">
 
-        <!-- Header -->
         <header class="mb-8 mt-6 flex justify-between items-end">
           <div>
             <div class="flex items-baseline gap-3">
@@ -27,7 +26,6 @@
           </div>
         </header>
 
-        <!-- Category Cards -->
         <section class="grid grid-cols-2 gap-4 mb-8">
           <div
             v-for="cat in categoryCards"
@@ -48,7 +46,6 @@
           </div>
         </section>
 
-        <!-- Task List -->
         <section>
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-900">All Tasks</h3>
@@ -85,6 +82,21 @@
 
                   <div class="flex-1 min-w-0">
                     <p class="text-base font-bold text-gray-800 truncate">{{ task.title }}</p>
+
+                    <div v-if="task.labels && task.labels.length > 0" class="flex flex-wrap gap-1 mt-1.5">
+                      <span 
+                        v-for="labelId in task.labels" 
+                        :key="labelId"
+                        class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1"
+                        :class="getLabelChipClass(getLabelInfo(labelId).color)"
+                      >
+                        <div 
+                          class="w-1.5 h-1.5 rounded-full" 
+                          :style="{ backgroundColor: IONIC_COLOR_HEX[getLabelInfo(labelId).color] || '#989aa2' }"
+                        ></div>
+                        {{ getLabelInfo(labelId).name }}
+                      </span>
+                    </div>
 
                     <div v-if="task.subtasks && task.subtasks.length > 0" class="mt-2 ml-2 space-y-1">
                       <div v-for="sub in task.subtasks" :key="sub.id" class="flex items-center gap-2">
@@ -124,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import {
   IonPage, IonContent, IonList, IonItem, IonItemSliding,
   IonItemOptions, IonItemOption, IonIcon, IonFab, IonFabButton,
@@ -139,10 +151,19 @@ import { useTaskStore } from '@/stores/taskStore';
 import { useAuth } from '@/composables/useAuth';
 import type { CategoryName } from '@/types/task';
 import { useRouter } from 'vue-router';
+// เพิ่มการนำเข้า Firebase tools
+import { db, collection, query, where, onSnapshot } from '@/services/firebase';
 
 const router = useRouter();
 const store = useTaskStore();
 const { user } = useAuth();
+
+// --- Label State & Colors ---
+const allLabels = ref<any[]>([]);
+const IONIC_COLOR_HEX: Record<string, string> = {
+  primary: '#3880ff', secondary: '#0cd1e8', tertiary: '#7044ff',
+  success: '#10dc60', warning: '#ffce00', danger: '#f04141', medium: '#989aa2',
+};
 
 const currentDate = new Date().toLocaleDateString('en-US', {
   weekday: 'short', month: 'short', day: 'numeric',
@@ -154,6 +175,36 @@ const categoryCards = [
   { name: 'Mental Health' as CategoryName, bgColor: 'bg-purple-200', ionIcon: happyOutline },
   { name: 'Others' as CategoryName, bgColor: 'bg-amber-200', ionIcon: folderOutline },
 ];
+
+// --- Lifecycle ---
+onMounted(() => {
+  // ดึงข้อมูล Labels ทั้งหมดของผู้ใช้มาเก็บไว้เทียบชื่อ
+  if (user.value) {
+    const q = query(collection(db, 'labels'), where('userId', '==', user.value.uid));
+    onSnapshot(q, (snapshot) => {
+      allLabels.value = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    });
+  }
+});
+
+// --- Helper Functions ---
+function getLabelInfo(labelId: string) {
+  const found = allLabels.value.find(l => l.id === labelId);
+  return found || { name: 'Label', color: 'medium' };
+}
+
+function getLabelChipClass(color: string): string {
+  const map: Record<string, string> = {
+    primary: 'bg-blue-50 text-blue-600 border-blue-100',
+    secondary: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+    tertiary: 'bg-purple-50 text-purple-600 border-purple-100',
+    success: 'bg-green-50 text-green-600 border-green-100',
+    warning: 'bg-amber-50 text-amber-600 border-amber-100',
+    danger: 'bg-red-50 text-red-600 border-red-100',
+    medium: 'bg-gray-50 text-gray-600 border-gray-100',
+  };
+  return map[color] || 'bg-gray-50 text-gray-600 border-gray-100';
+}
 
 function getCategoryBorderColor(cat: CategoryName) {
   const map: Record<CategoryName, string> = {
@@ -175,14 +226,42 @@ function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// ✅ Navigate to edit task page
 function openEditTask(taskId: string) {
   router.push(`/edit-task/${taskId}`);
 }
 
 async function handleComplete(taskId: string) {
+  // 1. เปลี่ยนสถานะเป็นเสร็จสิ้น
   await store.toggleComplete(taskId);
-  const toast = await toastController.create({ message: '✅ Task completed!', duration: 1500, position: 'bottom', color: 'success' });
+
+  // 2. สร้าง Toast พร้อมปุ่ม Undo
+  const toast = await toastController.create({
+    message: '✅ Task completed!',
+    duration: 3000, // เพิ่มเวลาเป็น 3 วินาทีเพื่อให้ผู้ใช้มีเวลาสังเกตและกด Undo
+    position: 'bottom',
+    color: 'success',
+    cssClass: 'custom-undo-toast', // สามารถเอาไปแต่ง style เพิ่มได้
+    buttons: [
+      {
+        text: 'Undo',
+        role: 'cancel', // ใส่ role เพื่อให้ดูเด่นหรือจัดการพฤติกรรมพื้นฐาน
+        handler: async () => {
+          // 3. เมื่อกด Undo ให้เรียก toggle อีกรอบเพื่อดึงงานกลับมา
+          await store.toggleComplete(taskId);
+          
+          // ตัวเลือกเสริม: แจ้งเตือนว่าดึงงานกลับมาแล้ว
+          const undoToast = await toastController.create({
+            message: 'Task restored',
+            duration: 1000,
+            position: 'bottom',
+            color: 'medium'
+          });
+          await undoToast.present();
+        }
+      }
+    ]
+  });
+
   await toast.present();
 }
 

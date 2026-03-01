@@ -3,7 +3,6 @@
     <ion-content :fullscreen="true" class="filter-detail-content">
       <div class="pb-28">
 
-        <!-- Header -->
         <div class="flex items-center px-4 pt-12 pb-4">
           <button @click="router.back()"
             class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 mr-3 active:scale-90 transition-transform">
@@ -16,7 +15,6 @@
           <span class="text-sm text-gray-400 font-medium">{{ filteredTasks.length }} tasks</span>
         </div>
 
-        <!-- Query Badge -->
         <div class="px-4 mb-4">
           <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl">
             <ion-icon :icon="codeSlashOutline" class="text-blue-400 text-sm"></ion-icon>
@@ -24,7 +22,6 @@
           </div>
         </div>
 
-        <!-- Empty State -->
         <div v-if="filteredTasks.length === 0" class="flex flex-col items-center justify-center mt-20 px-8 text-center">
           <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <ion-icon :icon="funnelOutline" class="text-4xl text-gray-300"></ion-icon>
@@ -33,7 +30,6 @@
           <p class="text-gray-300 text-sm mt-1">Try adjusting the filter query</p>
         </div>
 
-        <!-- Grouped Tasks -->
         <div v-else class="px-4">
           <div v-for="group in groupedTasks" :key="group.date" class="mb-5">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
@@ -49,16 +45,32 @@
                 </button>
                 <div class="flex-1 min-w-0">
                   <p class="text-base font-semibold text-gray-800 leading-snug">{{ task.title }}</p>
+
+                  <div v-if="task.labels && task.labels.length > 0" class="flex flex-wrap gap-1 mt-1.5">
+                    <span 
+                      v-for="lId in task.labels" 
+                      :key="lId"
+                      class="px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1"
+                      :class="getLabelChipClass(getLabelInfo(lId).color)"
+                    >
+                      <div 
+                        class="w-1.5 h-1.5 rounded-full" 
+                        :style="{ backgroundColor: IONIC_COLOR_HEX[getLabelInfo(lId).color] || '#989aa2' }"
+                      ></div>
+                      {{ getLabelInfo(lId).name }}
+                    </span>
+                  </div>
+
                   <div class="flex flex-wrap gap-1.5 mt-2">
-                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase"
                       :class="getCategoryClass(task.category)">
                       {{ task.category }}
                     </span>
-                    <span v-if="task.date" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-500">
+                    <span v-if="task.date" class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-500 uppercase">
                       {{ formatDate(task.date) }}
                     </span>
-                    <span v-if="task.startTime" class="text-xs text-gray-400 self-center">{{ task.startTime }}</span>
-                    <span v-if="task.priority" class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    <span v-if="task.startTime" class="text-[10px] text-gray-400 self-center font-bold">{{ task.startTime }}</span>
+                    <span v-if="task.priority" class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase"
                       :class="{
                         'bg-red-50 text-red-500': task.priority === 'high',
                         'bg-yellow-50 text-yellow-600': task.priority === 'medium',
@@ -106,13 +118,21 @@ const filterId = route.params.id as string;
 const filterName = ref('');
 const filterQuery = ref('');
 const filterColor = ref('primary');
+const allLabels = ref<any[]>([]); // สำหรับเก็บรายชื่อ labels ทั้งหมด
 
-// Load filter data
+const IONIC_COLOR_HEX: Record<string, string> = {
+  primary: '#3880ff', secondary: '#0cd1e8', tertiary: '#7044ff',
+  success: '#10dc60', warning: '#ffce00', danger: '#f04141', medium: '#989aa2',
+};
+
+// Load filter & labels data
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {
     if (!user) return;
-    const q = query(collection(db, 'filters'), where('userId', '==', user.uid));
-    onSnapshot(q, (snapshot) => {
+
+    // 1. ดึงข้อมูล Filters
+    const qFilters = query(collection(db, 'filters'), where('userId', '==', user.uid));
+    onSnapshot(qFilters, (snapshot) => {
       const found = snapshot.docs.find(d => d.id === filterId);
       if (found) {
         filterName.value = found.data().name;
@@ -120,8 +140,37 @@ onMounted(() => {
         filterColor.value = found.data().color || 'primary';
       }
     });
+
+    // 2. ดึงข้อมูล Labels ทั้งหมดเพื่อมาใช้ Map ชื่อ
+    const qLabels = query(collection(db, 'labels'), where('userId', '==', user.uid));
+    onSnapshot(qLabels, (snapshot) => {
+      allLabels.value = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    });
   });
 });
+
+// --- Helper Functions ---
+
+function getLabelInfo(lId: string) {
+  const found = allLabels.value.find(l => l.id === lId);
+  return found || { name: 'Label', color: 'medium' };
+}
+
+function getLabelChipClass(color: string): string {
+  const map: Record<string, string> = {
+    primary: 'bg-blue-50 text-blue-600 border-blue-100',
+    secondary: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+    tertiary: 'bg-purple-50 text-purple-600 border-purple-100',
+    success: 'bg-green-50 text-green-600 border-green-100',
+    warning: 'bg-amber-50 text-amber-600 border-amber-100',
+    danger: 'bg-red-50 text-red-600 border-red-100',
+    medium: 'bg-gray-50 text-gray-600 border-gray-100',
+  };
+  return map[color] || 'bg-gray-50 text-gray-600 border-gray-100';
+}
 
 const filteredTasks = computed(() => {
   if (!filterQuery.value) return [];
